@@ -8,6 +8,7 @@ import (
 	"flag"
 	"log"
 
+	terraformprovider "github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/remilapeyre/watson/internal/provider"
 )
@@ -31,6 +32,10 @@ var (
 	// https://goreleaser.com/cookbooks/using-main.version/
 )
 
+func New(version string) func() terraformprovider.Provider {
+	return provider.New(version)
+}
+
 func main() {
 	var debug bool
 
@@ -39,11 +44,11 @@ func main() {
 
 	opts := providerserver.ServeOpts{
 		// TODO: Update this string with the published name of your provider.
-		Address: "registry.terraform.io/remilapeyre/watson",
+		Address: "registry.terraform.io/Lenstra/watson",
 		Debug:   debug,
 	}
 
-	err := providerserver.Serve(context.Background(), provider.New(version), opts)
+	err := providerserver.Serve(context.Background(), New(version), opts)
 
 	if err != nil {
 		log.Fatal(err.Error())
