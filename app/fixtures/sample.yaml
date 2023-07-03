@@ -1,0 +1,59 @@
+- model: app.Project
+  pk: 1
+  fields:
+    name: Backend
+    slug: backend
+- model: app.Stack
+  pk: 1
+  fields:
+    name: Load-Balancers
+    slug: load-balancers
+    project: 1
+- model: app.Output
+  pk: 1
+  fields:
+    stack_id: 1
+    key: hostname
+    value: https://hello.eu-central-1.blabla
+
+- model: app.Project
+  pk: 2
+  fields:
+    name: Frontend
+    slug: frontend
+- model: app.Stack
+  pk: 2
+  fields:
+    name: Dev
+    slug: dev
+    project: 2
+- model: app.Output
+  pk: 2
+  fields:
+    stack_id: 2
+    key: url
+    value: https://my-dev-environment.bla
+- model: app.Stack
+  pk: 3
+  fields:
+    name: Staging
+    slug: staging
+    project: 2
+- model: app.Output
+  pk: 3
+  fields:
+    stack_id: 3
+    key: url
+    value: https://my-dev-environment.bla
+- model: app.Stack
+  pk: 4
+  fields:
+    name: Prod
+    slug: prod
+    project: 2
+- model: app.Output
+  pk: 4
+  fields:
+    stack_id: 4
+    key: url
+    value: https://hello.world
