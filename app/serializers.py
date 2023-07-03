@@ -1,4 +1,9 @@
+import base64
+import json
+
 from .models import Output, Project, Stack, UsedBy
+from django.conf import settings
+from django.utils.module_loading import import_string
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 
@@ -76,6 +81,7 @@ class OutputSerializer(serializers.Serializer):
     value = serializers.JSONField()
     deprecated = serializers.CharField(default="")
     warning = serializers.CharField(default="")
+    sensitive = serializers.BooleanField(default=False)
 
 
 class StackSerializer(DynamicFieldsModelSerializer):
@@ -88,17 +94,27 @@ class StackSerializer(DynamicFieldsModelSerializer):
     def create(self, validated_data):
         outputs = validated_data.pop("outputs")
         stack = Stack.objects.create(**validated_data)
-        Output.objects.bulk_create(
-            [
+        wrapper = import_string(settings.WRAPPER)()
+
+        objects = []
+        for k, v in outputs.items():
+            if v["sensitive"]:
+                b = json.dumps(v["value"]).encode()
+                value = base64.b85encode(wrapper.encrypt(b)).decode()
+            else:
+                value = v["value"]
+
+            objects.append(
                 Output(
                     stack_id=stack.id,
                     key=k,
-                    value=v["value"],
+                    value=value,
                     deprecated=v["deprecated"],
+                    sensitive=v["sensitive"],
                 )
-                for k, v in outputs.items()
-            ]
-        )
+            )
+
+        Output.objects.bulk_create(objects)
         return stack
 
     class Meta:

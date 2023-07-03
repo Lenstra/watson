@@ -1,6 +1,11 @@
+import base64
+import json
+
+from django.conf import settings
 from django.db import models
 from django.db.models import CheckConstraint, F, Q, TextField, Value
 from django.db.models.functions import Concat
+from django.utils.module_loading import import_string
 from django.utils.text import slugify
 
 
@@ -42,11 +47,19 @@ class Stack(Model):
     objects = StackManager()
 
     def outputs(self):
+        wrapper = import_string(settings.WRAPPER)()
+
+        def decrypt(value, sensitive):
+            if not sensitive:
+                return value
+            return json.loads(wrapper.decrypt(base64.b85decode(value)))
+
         return {
             output.key: {
-                "value": output.value,
+                "value": decrypt(output.value, output.sensitive),
                 "deprecated": output.deprecated if output.deprecated else None,
                 "warning": output.warning if output.warning else None,
+                "sensitive": output.sensitive,
             }
             for output in self.output_set.all()
         }
@@ -96,6 +109,7 @@ class Output(models.Model):
     value = models.JSONField()
     deprecated = models.TextField(blank=True)
     warning = models.TextField(blank=True)
+    sensitive = models.BooleanField(default=False)
 
     class Meta:
         unique_together = [["stack", "key"]]

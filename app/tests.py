@@ -2,6 +2,7 @@ from .models import Output, Project, Stack, UsedBy
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.utils import IntegrityError
+from django.test import override_settings
 from django.utils import timezone
 from freezegun import freeze_time
 from rest_framework.test import APITestCase
@@ -263,6 +264,7 @@ class TestStack(TestCase):
                         "value": "bar",
                         "deprecated": None,
                         "warning": None,
+                        "sensitive": False,
                     }
                 },
                 "url": "http://testserver/v1/projects/backend/test-with-outputs/",
@@ -292,6 +294,7 @@ class TestStack(TestCase):
                         "value": "https://my-dev-environment.bla",
                         "deprecated": None,
                         "warning": None,
+                        "sensitive": False,
                     }
                 },
                 "used_by": [],
@@ -324,6 +327,7 @@ class TestStack(TestCase):
                         "value": "https://hello.eu-central-1.blabla",
                         "deprecated": None,
                         "warning": None,
+                        "sensitive": False,
                     }
                 },
                 "used_by": [],
@@ -352,6 +356,7 @@ class TestStack(TestCase):
                         "value": "https://hello.eu-central-1.blabla",
                         "deprecated": None,
                         "warning": None,
+                        "sensitive": False,
                     }
                 },
                 "used_by": [],
@@ -395,6 +400,7 @@ class TestOutput(TestCase):
                     "value": "https://hello.eu-central-1.blabla",
                     "deprecated": None,
                     "warning": None,
+                    "sensitive": False,
                 }
             },
         )
@@ -404,6 +410,7 @@ class TestOutput(TestCase):
                 "value": "https://hello.eu-central-1.blabla",
                 "deprecated": None,
                 "warning": None,
+                "sensitive": False,
             },
         )
         response = self.client.get("/v1/projects/backend/load-balancers/outputs/404/")
@@ -430,6 +437,7 @@ class TestOutput(TestCase):
                         "value": "https://hello.eu-central-1.blabla",
                         "deprecated": None,
                         "warning": None,
+                        "sensitive": False,
                     }
                 },
                 HTTP_X_watson_STACK="frontend/dev",
@@ -450,6 +458,7 @@ class TestOutput(TestCase):
                             "value": "https://hello.eu-central-1.blabla",
                             "deprecated": None,
                             "warning": None,
+                            "sensitive": False,
                         }
                     },
                     "used_by": [
@@ -470,6 +479,7 @@ class TestOutput(TestCase):
                         "value": "https://hello.eu-central-1.blabla",
                         "deprecated": None,
                         "warning": None,
+                        "sensitive": False,
                     }
                 },
                 HTTP_X_watson_STACK="frontend/dev",
@@ -490,6 +500,7 @@ class TestOutput(TestCase):
                             "value": "https://hello.eu-central-1.blabla",
                             "deprecated": None,
                             "warning": None,
+                            "sensitive": False,
                         }
                     },
                     "used_by": [
@@ -510,6 +521,7 @@ class TestOutput(TestCase):
                     "value": "https://hello.eu-central-1.blabla",
                     "deprecated": None,
                     "warning": None,
+                    "sensitive": False,
                 }
             },
             HTTP_X_watson_STACK="backend/load-balancers",
@@ -530,6 +542,7 @@ class TestOutput(TestCase):
                         "value": "https://hello.eu-central-1.blabla",
                         "deprecated": None,
                         "warning": None,
+                        "sensitive": False,
                     }
                 },
                 "used_by": [],
@@ -544,6 +557,7 @@ class TestOutput(TestCase):
                     "value": "https://hello.eu-central-1.blabla",
                     "deprecated": None,
                     "warning": None,
+                    "sensitive": False,
                 }
             },
             HTTP_X_watson_STACK="frontend/unknown",
@@ -564,8 +578,84 @@ class TestOutput(TestCase):
                         "value": "https://hello.eu-central-1.blabla",
                         "deprecated": None,
                         "warning": None,
+                        "sensitive": False,
                     }
                 },
                 "used_by": [],
             },
         )
+
+    @override_settings(WRAPPER="wrapper.ROT13Wrapper")
+    def test_wrapped(self):
+        response = self.client.post(
+            "/v1/projects/backend/",
+            {
+                "name": "Wrapped",
+                "outputs": {
+                    "not_wrapped": {
+                        "value": "test",
+                    },
+                    "wrapped": {
+                        "value": "test",
+                        "sensitive": True,
+                    },
+                },
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201, response.content)
+        self.assertJSONEqual(
+            response.content,
+            {
+                "id": "backend/wrapped",
+                "name": "Wrapped",
+                "outputs": {
+                    "not_wrapped": {
+                        "value": "test",
+                        "deprecated": None,
+                        "warning": None,
+                        "sensitive": False,
+                    },
+                    "wrapped": {
+                        "value": "test",
+                        "deprecated": None,
+                        "warning": None,
+                        "sensitive": True,
+                    },
+                },
+                "url": "http://testserver/v1/projects/backend/wrapped/",
+                "project": {
+                    "id": "backend",
+                    "name": "Backend",
+                    "url": "http://testserver/v1/projects/backend/",
+                },
+                "used_by": [],
+            },
+        )
+        self.assertEqual(
+            Output.objects.values().get(key="not_wrapped"),
+            {
+                "deprecated": "",
+                "id": 5,
+                "key": "not_wrapped",
+                "sensitive": False,
+                "stack_id": 5,
+                "value": "test",
+                "warning": "",
+            },
+        )
+
+        data = Output.objects.values().get(key="wrapped")
+        value = data.pop("value")
+        self.assertEqual(
+            data,
+            {
+                "deprecated": "",
+                "id": 6,
+                "key": "wrapped",
+                "sensitive": True,
+                "stack_id": 5,
+                "warning": "",
+            },
+        )
+        self.assertNotEqual(value, "test")

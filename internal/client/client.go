@@ -95,6 +95,7 @@ type Output struct {
 	Value      interface{}
 	Deprecated string
 	Warning    string
+	Sensitive  bool
 }
 
 type Outputs map[string]Output

@@ -57,7 +57,14 @@ func (d *OutputsDataSource) Schema(ctx context.Context, req datasource.SchemaReq
 			"outputs": schema.MapAttribute{
 				MarkdownDescription: "Example configurable attribute.",
 				Computed:            true,
-				ElementType:         types.StringType,
+				ElementType: types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"value":      types.StringType,
+						"sensitive":  types.BoolType,
+						"deprecated": types.StringType,
+						"warning":    types.StringType,
+					},
+				},
 			},
 		},
 	}
@@ -111,7 +118,21 @@ func (d *OutputsDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	for k, v := range *outputs {
 		switch value := v.Value.(type) {
 		case string:
-			result[k] = types.StringValue(value)
+			result[k] = types.ObjectValueMust(
+				map[string]attr.Type{
+					"value":      types.StringType,
+					"sensitive":  types.BoolType,
+					"deprecated": types.StringType,
+					"warning":    types.StringType,
+				},
+				map[string]attr.Value{
+					"value":      types.StringValue(value),
+					"deprecated": types.StringValue(v.Deprecated),
+					"warning":    types.StringValue(v.Warning),
+					"sensitive":  types.BoolValue(v.Sensitive),
+				},
+			)
+
 		default:
 			resp.Diagnostics.AddWarning("ignored output", fmt.Sprintf("output %q has type %T and is ignored for now", k, value))
 		}
@@ -125,7 +146,17 @@ func (d *OutputsDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		}
 	}
 
-	data.Outputs = types.MapValueMust(types.StringType, result)
+	data.Outputs = types.MapValueMust(
+		types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"value":      types.StringType,
+				"sensitive":  types.BoolType,
+				"deprecated": types.StringType,
+				"warning":    types.StringType,
+			},
+		},
+		result,
+	)
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
