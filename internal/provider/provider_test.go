@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Lenstra/watson/internal/client"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
-	"github.com/remilapeyre/watson/internal/client"
 
 	"github.com/phayes/freeport"
 )

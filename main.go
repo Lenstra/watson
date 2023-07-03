@@ -8,9 +8,9 @@ import (
 	"flag"
 	"log"
 
+	"github.com/Lenstra/watson/internal/provider"
 	terraformprovider "github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
-	"github.com/remilapeyre/watson/internal/provider"
 )
 
 // Run "go generate" to format example terraform files and generate the docs for the registry/website

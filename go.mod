@@ -1,4 +1,4 @@
-module github.com/remilapeyre/watson
+module github.com/Lenstra/watson
 
 go 1.20
 
